@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Weather App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-700 to-indigo-900 text-white">
+
+  <div class="bg-white/10 backdrop-blur-lg p-6 rounded-2xl w-[360px] shadow-xl">
+    <h1 class="text-2xl font-bold text-center mb-4">🌦 Weather App</h1>
+
+    <!-- Input -->
+    <input
+      id="cityInput"
+      type="text"
+      placeholder="Enter city name"
+      class="w-full p-2 rounded text-black mb-3 outline-none"
+    />
+
+    <!-- Buttons -->
+    <div class="flex gap-2 mb-4">
+      <button onclick="getWeather()" class="flex-1 bg-blue-600 hover:bg-blue-700 p-2 rounded font-semibold">
+        Search
+      </button>
+      <button onclick="toggleUnit()" class="flex-1 bg-gray-600 hover:bg-gray-700 p-2 rounded font-semibold">
+        °C / °F
+      </button>
+    </div>
+
+    <!-- Current Weather -->
+    <div id="currentWeather" class="text-center space-y-1 mb-4"></div>
+
+    <!-- Forecast -->
+    <h2 class="text-lg font-semibold mb-2">📅 5-Day Forecast</h2>
+    <div id="forecast" class="space-y-2 text-sm"></div>
+  </div>
+
+  <script>
+    const apiKey = "f0af0bec9ed9d8dabfcc7f4f0a8609f4";
+    let unit = "metric"; // metric = Celsius, imperial = Fahrenheit
+    let lastCity = "";
+
+    function toggleUnit() {
+      unit = unit === "metric" ? "imperial" : "metric";
+      if (lastCity) getWeather();
+    }
+
+    function getWeather() {
+      const city = document.getElementById("cityInput").value.trim();
+      if (!city) {
+        alert("Please enter a city name");
+        return;
+      }
+
+      lastCity = city;
+
+      fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=${unit}&appid=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.cod != 200) {
+            document.getElementById("currentWeather").innerHTML = "City not found ❌";
+            return;
+          }
+
+          const symbol = unit === "metric" ? "°C" : "°F";
+
+          document.getElementById("currentWeather").innerHTML = `
+            <h2 class="text-xl font-semibold">${data.name}, ${data.sys.country}</h2>
+            <p>🌡 ${data.main.temp}${symbol}</p>
+            <p>🌤 ${data.weather[0].description}</p>
+            <p>💧 Humidity: ${data.main.humidity}%</p>
+            <p>🌬 Wind: ${data.wind.speed} ${unit === "metric" ? "m/s" : "mph"}</p>
+          `;
+
+          getForecast(data.coord.lat, data.coord.lon);
+        });
+    }
+
+    function getForecast(lat, lon) {
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=${unit}&appid=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          const forecastDiv = document.getElementById("forecast");
+          forecastDiv.innerHTML = "";
+
+          const symbol = unit === "metric" ? "°C" : "°F";
+
+          // Pick one forecast per day (every 24 hours)
+          for (let i = 0; i < data.list.length; i += 8) {
+            const item = data.list[i];
+            const date = new Date(item.dt_txt).toDateString();
+
+            forecastDiv.innerHTML += `
+              <div class="bg-white/10 p-2 rounded">
+                <p class="font-semibold">${date}</p>
+                <p>🌡 ${item.main.temp}${symbol}</p>
+                <p>🌤 ${item.weather[0].description}</p>
+              </div>
+            `;
+          }
+        });
+    }
+  </script>
+
+</body>
+</html>
+
